@@ -8,6 +8,6 @@ public class DemoController {
 
     @GetMapping("/hello")
     public String hello() {
-        return "DevOps demo - now on Docker Hub!";
+        return "DevOps demo - now on Docker Hub... SO?!";
     }
 }
