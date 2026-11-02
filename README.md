@@ -2,7 +2,7 @@
 
 ## Single-stage Build
 
-- Maven builds the Java JAR.
+- Maven builds the Java JAR locally.
 - Docker build creates the Docker image.
 - Docker run creates and starts a container.
 
@@ -15,4 +15,3 @@ In a multi-stage Docker build, Maven runs inside Docker during the first stage t
 In the second stage, Docker copies the compiled JAR into a separate Java runtime image, which can then be used to run a container.
 
 The benefit of multi-stage builds is that the build process is automated, and the final image does not need to include Maven and its build tools.
-
