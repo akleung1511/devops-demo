@@ -90,11 +90,54 @@ jobs:
             echo "Pushing image to Docker Hub..."
             docker push $DOCKER_USERNAME/devops-demo:latest
 
+  # ==========================================
+  # DEPLOY JOB - Deploy Docker image to Render
+  # ==========================================
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Install the Render CLI
+          command: |
+            set -e
+            curl -fsSL https://raw.githubusercontent.com/render-oss/cli/refs/heads/main/bin/install.sh | sh
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+      - run:
+          name: Redeploy latest image on Render and wait
+          command: |
+            render deploys create "$RENDER_SERVICE_ID" \
+              --wait --confirm --output text
+# ==========================================
+# NOTIFY JOB - Discord deployment results
+# ==========================================
+  notify:
+    parameters:
+      result:
+        type: enum
+        enum: ["success", "failed"]
+
+    docker:
+      - image: cimg/base:stable
+
+    steps:
+      - run:
+          name: Send the deployment result to Discord
+          command: |
+            if [ "<< parameters.result >>" = "success" ]; then
+              MESSAGE="Deployment succeeded!"
+            else
+              MESSAGE="Deployment FAILED!"
+            fi
+            curl --fail --silent --show-error \
+              -H "Content-Type: application/json" \
+              -d "{\"content\": \"${MESSAGE}\"}" \
+              "$DISCORD_WEBHOOK_URL"
 # ==========================================
 # WORKFLOW - Run jobs in sequence
 # ==========================================
 workflows:
-  build_test_publish:
+  build_test_publish_deploy:
     jobs:
       - build
       - test:
@@ -104,3 +147,16 @@ workflows:
           context: docker-hub
           requires:
             - test
+      - deploy:
+          requires:
+            - publish
+      - notify:
+          name: notify-success
+          result: success
+          requires:
+            - deploy: success
+      - notify:
+          name: notify-failure
+          result: failed
+          requires:
+            - deploy: failed
